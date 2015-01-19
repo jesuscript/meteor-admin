@@ -21,7 +21,7 @@
 		ref = root
 		arr = obj.split '.'
 		continue while arr.length and (ref = ref[arr.shift()])
-		if not ref
+		if not ref?
 			throw new Error(obj + ' is not in the ' + root.toString())
 		else
 			return ref

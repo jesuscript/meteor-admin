@@ -37,7 +37,7 @@ AutoForm.hooks
 
 	adminNewUser:
 		onSuccess: (operation, result, template)->
-			Router.go 'adminDashboardUsersView'
+			Router.go 'adminDashboard'
 		onError: (operation, error, template)->
 			AdminDashboard.alertFailure error.message
 
