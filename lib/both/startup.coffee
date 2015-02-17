@@ -1,59 +1,96 @@
+@AdminTables = {}
+
+adminTablesDom = '<"box"<"box-header"<"box-toolbar"<"pull-left"<lf>><"pull-right"p>>><"box-body"t>>'
+adminEditDelButtons = [
+	{
+		data: '_id'
+		title: 'Edit'
+		createdCell: (node, cellData, rowData) ->
+			$(node).html(Blaze.toHTMLWithData Template.adminEditBtn, {_id: cellData}, node)
+		width: '40px'
+		orderable: false
+	}
+	{
+		data: '_id'
+		title: 'Delete'
+		createdCell: (node, cellData, rowData) ->
+			$(node).html(Blaze.toHTMLWithData Template.adminDeleteBtn, {_id: cellData}, node)
+		width: '40px'
+		orderable: false
+	}
+]
+
+AdminTables.Users = new Tabular.Table
+	name: 'Users'
+	collection: Meteor.users
+	columns: _.union [
+		{
+			data: '_id'
+			title: 'Admin'
+			# TODO: use `tmpl`
+			createdCell: (node, cellData, rowData) ->
+				$(node).html(Blaze.toHTMLWithData Template.adminUsersIsAdmin, {_id: cellData}, node)
+			width: '40px'
+		}
+		{
+			data: 'emails'
+			title: 'Email'
+			render: (value) ->
+				value[0].address
+		}
+		{
+			data: 'emails'
+			title: 'Mail'
+			# TODO: use `tmpl`
+			createdCell: (node, cellData, rowData) ->
+				$(node).html(Blaze.toHTMLWithData Template.adminUsersMailBtn, {emails: cellData}, node)
+			width: '40px'
+		}
+		{ data: 'createdAt', title: 'Joined' }
+	], adminEditDelButtons
+	dom: adminTablesDom
+
+adminTablePubName = (collection) ->
+	"admin_tabular_#{collection}"
+
+adminCreateTables = (collections) ->
+	_.each AdminConfig?.collections, (collection, name) ->
+		columns = _.map collection.tableColumns, (column) ->
+			if column.template
+				createdCell = (node, cellData, rowData) ->
+					$(node).html(Blaze.toHTMLWithData Template[column.template], {value: cellData, doc: rowData}, node)
+
+			data: column.name
+			title: column.label
+			createdCell: createdCell
+
+		if columns.length == 0
+			columns = defaultColumns
+
+		AdminTables[name] = new Tabular.Table
+			name: name
+			collection: adminCollectionObject(name)
+			pub: collection.children and adminTablePubName(name)
+			sub: collection.sub
+			columns: _.union columns, adminEditDelButtons
+			extraFields: collection.extraFields
+			dom: adminTablesDom
+
+adminPublishTables = (collections) ->
+	_.each collections, (collection, name) ->
+		if not collection.children then return undefined
+		Meteor.publishComposite adminTablePubName(name), (tableName, ids, fields) ->
+			check tableName, String
+			check ids, Array
+			check fields, Match.Optional Object
+
+			@unblock()
+
+			find: ->
+				@unblock()
+				adminCollectionObject(name).find {_id: {$in: ids}}, {fields: fields}
+			children: collection.children
+
 Meteor.startup ->
-	@AdminUsersCollection =
-		collectionObject: Meteor.users
-		icon: 'user'
-
-	if typeof AdminConfig != 'undefined' and typeof AdminConfig.collections != 'undefined'
-		collections = AdminConfig.collections
-	else
-		collections = {}
-
-	collections.Users = AdminUsersCollection
-
-	@AdminPages = {}
-	_.each collections, (collection, collectionName) ->
-		templateName = 'AdminDashboardView_' + collectionName
-		if Meteor.isClient
-			Template.AdminDashboardView.copyAs(templateName)
-
-		AdminPages[collectionName] = 
-			page: new Meteor.Pagination adminCollectionObject(collectionName),
-				name: 'admin_collections_' + collectionName
-				router: 'iron-router'
-				homeRoute: '/admin/' + collectionName
-				route: '/admin/' + collectionName
-				routerTemplate: templateName
-				templateName: templateName
-				routeSettings: (router) ->
-					router.action = ->
-						Session.set 'admin_title', AdminDashboard.collectionLabel(collectionName)
-						Session.set 'admin_subtitle', 'View'
-						Session.set 'admin_collection_page', ''
-						Session.set 'admin_collection_name', collectionName
-						router.render()
-				routerLayout: 'AdminLayout'
-				itemTemplate: 'adminPagesItem'
-				availableSettings:
-					sort: true
-					filters: true
-				# force meteor-pages to render a table
-				table: {}
-
-		if Meteor.isClient
-			AdminPages[collectionName].sort = new Tracker.Dependency
-			AdminPages[collectionName].getSort = ->
-				@sort.depend()
-				_.clone @page.sort
-			AdminPages[collectionName].setSort = (sort) ->
-				@page.set sort: sort
-				@sort.changed()
-
-			AdminPages[collectionName].setFilter = (field, filter) ->
-				filters = _.clone @page.filters
-				filters[field] = filter
-				@page.set filters: filters
-			AdminPages[collectionName].removeFilter = (field) ->
-				filters = _.clone @page.filters
-				if filters[field]
-					delete filters[field]
-					@page.set filters: filters
+	adminCreateTables AdminConfig?.collections
+	adminPublishTables AdminConfig?.collections if Meteor.isServer

@@ -6,19 +6,6 @@ AdminDashboard =
 		Session.set 'adminSuccess', message
 	alertFailure: (message)->
 		Session.set 'adminError', message
-	clearAlerts: ->
-		Session.set 'adminSuccess', null
-		Session.set 'adminError', null
-		if typeof @.next == 'function'
-			@next()
-
-	clearSession: ->
-		Session.set 'admin_title', ''
-		Session.set 'admin_subtitle', ''
-		Session.set 'admin_collection_page'
-		Session.set 'admin_collection_name'
-		Session.set 'admin_id'
-		Session.set 'admin_doc'
 
 	checkAdmin: ->
 		if not Roles.userIsInRole Meteor.userId(), ['admin']
@@ -44,6 +31,13 @@ AdminDashboard =
 			item.options = options
 
 		@sidebarItems.push item
+
+	extendSidebarItem: (title, urls) ->
+		if _.isObject(urls) then urls = [urls]
+
+		existing = _.find @sidebarItems, (item) -> item.title == title
+		if existing
+			existing.options.urls = _.union existing.options.urls, urls
 
 	addCollectionItem: (fn) ->
 		@collectionItems.push fn

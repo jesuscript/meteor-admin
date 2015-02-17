@@ -1,44 +1,49 @@
-Template.adminPagesSort.helpers
-	icon: ->
-		collectionName = Session.get 'admin_collection_name'
-		if collectionName and AdminPages[collectionName]
-			sort = AdminPages[collectionName].getSort()
-			if typeof sort[@field] == 'undefined'
-				false
-			else
-				if sort[@field] == 1 then 'caret-up' else 'caret-down'
+Template.AdminDashboardViewWrapper.rendered = ->
+	node = @firstNode
 
-Template.adminPagesSort.events
-	'click .admin_pages_sort': (e) ->
-		collectionName = Session.get 'admin_collection_name'
-		if collectionName and AdminPages[collectionName]
-			sort = AdminPages[collectionName].getSort()
-			if sort[@field] == -1
-				delete sort[@field]
-			else
-				sort[@field] = if sort[@field] == 1 then -1 else 1
-			AdminPages[collectionName].setSort sort
+	@autorun ->
+		data = Template.currentData()
 
-Template.adminTextFilter.events
-	'change input': (e, t) ->
-		value = t.firstNode.value
-		if value.length > 0
-			AdminPages[Session.get 'admin_collection_name']?.setFilter @field,
-				$regex: value
-				$options: 'i'
-		else
-			AdminPages[Session.get 'admin_collection_name']?.removeFilter @field
+		if data.view then Blaze.remove data.view
+		while node.firstChild
+			node.removeChild node.firstChild
 
-Template.adminNumberFilter.events
-	'change input': (e, t) ->
-		min = parseInt t.$('.js-filter-min').val(), 10
-		max = parseInt t.$('.js-filter-max').val(), 10
+		data.view = Blaze.renderWithData Template.AdminDashboardView, data, node
 
-		filter = {}
-		if min then filter.$gt = min
-		if max then filter.$lt = max
+Template.AdminDashboardViewWrapper.destroyed = ->
+	Blaze.remove @data.view
 
-		if min or max
-			AdminPages[Session.get 'admin_collection_name']?.setFilter @field, filter
-		else
-			AdminPages[Session.get 'admin_collection_name']?.removeFilter @field
+Template.AdminDashboardView.rendered = ->
+	table = @$('.dataTable').DataTable();
+	filter = @$('.dataTables_filter')
+	length = @$('.dataTables_length')
+
+	filter.html '
+		<div class="input-group">
+			<input type="search" class="form-control input-sm" placeholder="Search"></input>
+			<div class="input-group-btn">
+				<button class="btn btn-sm btn-default">
+					<i class="fa fa-search"></i>
+				</button>
+			</div>
+		</div>
+	'
+
+	length.html '
+		<select class="form-control input-sm">
+			<option value="10">10</option>
+			<option value="25">25</option>
+			<option value="50">50</option>
+			<option value="100">100</option>
+		</select>
+	'
+
+	filter.find('input').on 'keyup', ->
+		table.search(@value).draw()
+
+	length.find('select').on 'change', ->
+		table.page.len(parseInt @value).draw()
+
+Template.AdminDashboardView.helpers
+	hasDocuments: ->
+		AdminCollectionsCount.findOne({collection: Session.get 'admin_collection_name'})?.count > 0

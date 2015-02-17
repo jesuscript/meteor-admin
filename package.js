@@ -12,17 +12,18 @@ Package.on_use(function(api){
   api.versionsFrom('METEOR@1.0');
 
   api.use(
-    ['iron:router@1.0.6',
+    ['iron:router@1.0.7',
     'coffeescript',
-    'accounts-base',
-    'accounts-password',
     'underscore',
-    'aldeed:collection2@2.3.0',
+    'aldeed:collection2@2.3.2',
     'aldeed:autoform@4.2.2',
     'aldeed:template-extension@3.1.1',
     'alanning:roles@1.2.13',
     'raix:handlebar-helpers@0.2.4',
-    'alethes:pages@1.7.2'
+    'reywood:publish-composite@1.3.5',
+    'momentjs:moment@2.9.0',
+    'aldeed:tabular@1.0.6',
+    'meteorhacks:unblock@1.1.0'
     ],
     both);
 
@@ -34,7 +35,8 @@ Package.on_use(function(api){
     'lib/both/AdminDashboard.coffee',
     'lib/both/router.coffee',
     'lib/both/utils.coffee',
-    'lib/both/startup.coffee'
+    'lib/both/startup.coffee',
+    'lib/both/collections.coffee'
     ], both);
 
   api.add_files([
