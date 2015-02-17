@@ -1,7 +1,7 @@
 Package.describe({
   name: "jesus666:admin",
   summary: "A complete admin dashboard solution",
-  version: "1.0.11",
+  version: "1.0.12",
   git: "https://github.com/jesuscript/meteor-admin"
 });
 
